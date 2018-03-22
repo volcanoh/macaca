@@ -23,12 +23,12 @@ int main(int argc, char** argv) {
   nh.getParam("camera_info_url", url);
   nh.getParam("camera_name", camera_name);
 
-  const std::string image_topic_name = camera_name + "/image_raw";
+  const std::string image_topic_name = "image_raw";
 
   boost::shared_ptr<image_transport::CameraPublisher> pub(new image_transport::CameraPublisher(it.advertiseCamera(image_topic_name, 5)));
 
   cv::VideoCapture frame(camera_id);
-  //frame.set(CV_CAP_PROP_FOURCC, CV_FOURCC('M', 'J', 'P', 'G'));
+  frame.set(CV_CAP_PROP_FOURCC, CV_FOURCC('M', 'J', 'P', 'G'));
   if(frame.isOpened()) {
     cout << "Camera " << camera_id << " is Opened.\nTopic: " << image_topic_name << endl;
   }
