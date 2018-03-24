@@ -54,7 +54,9 @@ int main(int argc, char** argv) {
   while (nh.ok()) {
     frame >> image;
     if (image.empty()) continue;
-    header.stamp = ros::Time::now();
+    ros::Time time = ros::Time::now();
+    header.stamp = time;
+    info->header.stamp = time;
     msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();
     pub->publish(msg, info);
   }
