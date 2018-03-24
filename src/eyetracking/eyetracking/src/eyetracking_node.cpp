@@ -15,6 +15,7 @@ cv_bridge::CvImagePtr cv_ptr_;
 cv::Mat image_;
 cv::Point2f pupil_center_;
 image_transport::Subscriber image_sub_;
+image_transport::Publisher image_pub_;
 ros::Publisher pupil_pub_;
 
 eyetracking_msgs::RotatedRect pupil_ellipse_msg;
@@ -27,18 +28,28 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   try {
     cv_ptr_ = cv_bridge::toCvCopy(msg, "bgr8");
     image_ = cv_ptr_->image;
+    cv::resize(image_, image_, cv::Size(320, 240));
+
+    int size_times = image_.cols / 320; 
+    ROS_INFO("%i", image_.cols);
     try {
       pupiltracker::findPupilEllipse_out out;
       pupiltracker::tracker_log log;
       pupiltracker::findPupilEllipse(params, image_, out, log);
 
+      pupiltracker::cvx::cross(image_, out.pPupil, 5, pupiltracker::cvx::rgb(255, 255, 0));
+      cv::ellipse(image_, out.elPupil, pupiltracker::cvx::rgb(255,0,255));
+
       pupil_ellipse_msg.header = msg->header;
-      pupil_ellipse_msg.x = out.elPupil.center.x;
-      pupil_ellipse_msg.y = out.elPupil.center.y;
+      pupil_ellipse_msg.x = out.elPupil.center.x * size_times;
+      pupil_ellipse_msg.y = out.elPupil.center.y * size_times;
       pupil_ellipse_msg.angle = out.elPupil.angle;
-      pupil_ellipse_msg.width = out.elPupil.size.width;
-      pupil_ellipse_msg.height = out.elPupil.size.height;
+      pupil_ellipse_msg.width = out.elPupil.size.width * size_times;
+      pupil_ellipse_msg.height = out.elPupil.size.height * size_times;
       pupil_pub_.publish(pupil_ellipse_msg);
+
+      sensor_msgs::ImagePtr pub_msg = cv_bridge::CvImage(msg->header, "bgr8", image_).toImageMsg();
+      image_pub_.publish(pub_msg);
 
     }
     catch (cv::Exception e) {
@@ -94,7 +105,7 @@ int main(int argc, char *argv[])
 
   image_transport::ImageTransport it(nh);
   image_sub_ = it.subscribe("image_rect_color", 1, imageCallback);
-
+  image_pub_ = it.advertise("image_rect_color_pupil", 1);
   ros::spin();
   return 0;
 }
