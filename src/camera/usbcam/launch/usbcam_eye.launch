@@ -14,4 +14,7 @@
       <arg name="camera_id" default="1"/>
     </include>
   </group>
+
+  <node pkg="tf" type="static_transform_publisher" name="map_to_right" args="-0.00 0 0 0 0 0 map /'$(arg ns)'/right/camera_link 10"/>
+  <node pkg="tf" type="static_transform_publisher" name="map_to_left" args="-0.00 0 0 0 0 0 map /'$(arg ns)'/left/camera_link 10"/>
 </launch>

@@ -4,21 +4,23 @@
   <group ns="$(arg ns)">
     <include file="$(find usbcam)/launch/usbcam_single_node.launch">
       <arg name="camera_name" default="left"/>
-      <arg name="camera_info_url" default="file://$(find usbcam)/data/eye/left/ost.yaml"/>
+      <arg name="camera_info_url" default="file://$(find usbcam)/data/stereo/left.yaml"/>
       <arg name="camera_id" default="0"/>
     </include>
 
     <include file="$(find usbcam)/launch/usbcam_single_node.launch">
       <arg name="camera_name" default="right"/>
-      <arg name="camera_info_url" default="file://$(find usbcam)/data/eye/right/ost.yaml"/>
+      <arg name="camera_info_url" default="file://$(find usbcam)/data/stereo/right.yaml"/>
       <arg name="camera_id" default="1"/>
-    </include>
 
+    </include>
     <node name="stereo_image_proc" pkg="stereo_image_proc" type="stereo_image_proc" output="screen">                                                                               
-      <param name="queue_size" value="5"/>                                                                                                                                         
-      <param name="approximate_sync" value="True"/>                                                                                                                                
-      <remap from="/stereo/left/image" to="/$(arg ns)/left/image_raw"/>                                                                                                            
-      <remap from="/stereo/right/image" to="/$(arg ns)/right/image_raw"/>                                                                                                          
+      <param name="queue_size" value="5"/>
+      <param name="approximate_sync" value="True"/>
+      <remap from="/stereo/left/image" to="/$(arg ns)/left/image_raw"/>
+      <remap from="/stereo/right/image" to="/$(arg ns)/right/image_raw"/>
     </node> 
   </group>
+  <node pkg="tf" type="static_transform_publisher" name="map_to_$(arg ns)_left" args="0 0 0 0 0 0 map /'$(arg ns)'/left/camera_link 10"/>
+  <node pkg="tf" type="static_transform_publisher" name="map_to_$(arg ns)_right" args="0 0 0 0 0 0 map /'$(arg ns)'/right/camera_link 10"/>
 </launch>
