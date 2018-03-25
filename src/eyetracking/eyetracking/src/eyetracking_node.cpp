@@ -31,7 +31,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     cv::resize(image_, image_, cv::Size(320, 240));
 
     int size_times = image_.cols / 320; 
-    ROS_INFO("%i", image_.cols);
     try {
       pupiltracker::findPupilEllipse_out out;
       pupiltracker::tracker_log log;
