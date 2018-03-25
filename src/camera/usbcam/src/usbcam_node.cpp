@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
 
   sensor_msgs::CameraInfoPtr info(new sensor_msgs::CameraInfo(cinfo.getCameraInfo()));
   std_msgs::Header header;
-  header.frame_id = "/" + camera_name + "_camera_link";
+  header.frame_id = ros::names::resolve(ros::this_node::getNamespace() ,camera_name) + "/camera_link";
   info->header.frame_id = header.frame_id;
   while (nh.ok()) {
     frame >> image;
