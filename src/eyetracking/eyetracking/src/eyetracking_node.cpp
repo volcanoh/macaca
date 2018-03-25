@@ -28,9 +28,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   try {
     cv_ptr_ = cv_bridge::toCvCopy(msg, "bgr8");
     image_ = cv_ptr_->image;
-    cv::resize(image_, image_, cv::Size(320, 240));
-
     int size_times = image_.cols / 320; 
+    cv::resize(image_, image_, cv::Size(320, image_.rows / size_times));
+
     try {
       pupiltracker::findPupilEllipse_out out;
       pupiltracker::tracker_log log;
