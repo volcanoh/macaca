@@ -2,3 +2,5 @@ build
 devel
 *.swp
 *.png
+*.log
+
