@@ -1,18 +1,16 @@
 <launch>
   <arg name="usb_device_name" default="/dev/ttyUSB0" />
-  <arg name="object_points_file" default="$(find lighthouse_track)/object_points.txt"/>
+  <arg name="object_points_file" default="$(find lighthouse_track)/../../data/lighthouse/handtool_points.txt"/>
   <arg name="lighthouse_frame" default="lighthouse_link"/>
-  <arg name="marker_name" default="marker"/>
-  <arg name="world_frame" default="world" />
+  <arg name="marker_frame" default="handtool_link"/>
 
   <group ns="lighthouse">
     <node name="track_marker_node" pkg="lighthouse" type="track_marker_node" output="screen">
       <param name="usb_device_name" value="$(arg usb_device_name)"/>
       <param name="object_points_file" value="$(arg object_points_file)"/>
       <param name="lighthouse_frame" value="$(arg lighthouse_frame)"/>
-      <param name="marker_name" value="$(arg marker_name)_link"/>
+      <param name="marker_frame" value="$(arg marker_frame"/>
     </node>
   </group>
-  <node name="static_transform_publisher" pkg="tf" type="static_transform_publisher"  args="0 0 0 0 0 0 $(arg world_frame) $(arg lighthouse_frame) 10" />
 
 </launch>
