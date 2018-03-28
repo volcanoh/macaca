@@ -23,6 +23,4 @@
       <remap from="/stereo/right/image" to="/$(arg ns)/right/image_raw"/>
     </node> 
   </group>
-  <node pkg="tf" type="static_transform_publisher" name="map_to_$(arg ns)_left" args="0 0 0 0 0 0 map /'$(arg ns)'/left/camera_link 10"/>
-  <node pkg="tf" type="static_transform_publisher" name="map_to_$(arg ns)_right" args="0 0 0 0 0 0 map /'$(arg ns)'/right/camera_link 10"/>
 </launch>
