@@ -56,17 +56,20 @@ std::string scene_right_tf_datafile = "";
 std::string eye_left_tf_datafile = "";
 std::string eye_right_tf_datafile = "";
 
+int frame_rate = 10;
 
 int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "macaca_tf_setup");
   ros::NodeHandle nh("~");
-  ros::Rate rate(30);
 
+  nh.getParam("rate", frame_rate);
   nh.getParam("scene_left_tf_datafile", scene_left_tf_datafile);
   nh.getParam("scene_right_tf_datafile", scene_right_tf_datafile);
   nh.getParam("eye_left_tf_datafile", eye_left_tf_datafile);
   nh.getParam("eye_right_tf_datafile", eye_right_tf_datafile);
+
+  ros::Rate rate(frame_rate);
 
   tf::Transform scene_left_tf;
   tf::Transform scene_right_tf;
