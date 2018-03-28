@@ -2,7 +2,7 @@
   <arg name="usb_device_name" default="/dev/ttyUSB0" />
   <arg name="object_points_file" default="$(find lighthouse_track)/../../data/lighthouse/handtool_points.txt"/>
   <arg name="lighthouse_frame" default="lighthouse_link"/>
-  <arg name="marker_frame" default="handtool_link"/>
+  <arg name="marker_frame" default="handtool_marker_link"/>
 
   <group ns="lighthouse">
     <node name="track_marker_node" pkg="lighthouse" type="track_marker_node" output="screen">
