@@ -101,7 +101,7 @@ bool TrackObject::Consume() {
   } 
   //cout << endl << endl;
   //cv::solvePnP(object_points, image_points, cv::Matx33d::eye(), cv::Mat(), rvecTrack, tvecTrack, false, cv::SOLVEPNP_ITERATIVE);
-  if (image_points.size() == object_points.size() && image_points.size() >= 3)
+  if (image_points.size() == object_points.size() && image_points.size() >= 4)
     ret = cv::solvePnP(object_points, image_points, cv::Matx33d::eye(), cv::Mat(), rvecTrack, tvecTrack, false, cv::SOLVEPNP_EPNP);
   //cv::solvePnPRansac(object_points, image_points, cv::Matx33d::eye(), cv::Mat(), rvecTrack, tvecTrack, false, 100, 8.0, 100);
   //cout << "tvec:\n " << tvecTrack << endl << "rvec:\n" << rvecTrack << endl << endl;
