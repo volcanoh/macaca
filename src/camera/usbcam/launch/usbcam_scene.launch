@@ -16,11 +16,11 @@
       <arg name="camera_id" default="$(arg id1)"/>
     </include>
 
-    <node name="stereo_image_proc" pkg="stereo_image_proc" type="stereo_image_proc" output="screen">                                                                               
-      <param name="queue_size" value="5"/>
-      <param name="approximate_sync" value="True"/>
-      <remap from="/stereo/left/image" to="/$(arg ns)/left/image_raw"/>
-      <remap from="/stereo/right/image" to="/$(arg ns)/right/image_raw"/>
-    </node> 
+    <!--<node name="stereo_image_proc" pkg="stereo_image_proc" type="stereo_image_proc" output="screen">                                                                               -->
+      <!--<param name="queue_size" value="5"/>-->
+      <!--<param name="approximate_sync" value="True"/>-->
+      <!--<remap from="/stereo/left/image" to="/$(arg ns)/left/image_raw"/>-->
+      <!--<remap from="/stereo/right/image" to="/$(arg ns)/right/image_raw"/>-->
+    <!--</node> -->
   </group>
 </launch>
