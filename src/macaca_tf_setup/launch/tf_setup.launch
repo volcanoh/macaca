@@ -1,6 +1,6 @@
 <launch>
   <arg name="data_folder" default="/home/volcanoh/macaca/data/handeye/eyetracker"/>
-  <arg name="rate" default="10"/>
+  <arg name="rate" default="30"/>
   <node pkg="macaca_tf_setup" type="macaca_tf_setup_node" name="macaca_tf_setup" output="screen">
     <param name="scene_left_tf_datafile" type="str" value="$(arg data_folder)/scene/left/CalibratedTransform.yml"/>
     <param name="scene_right_tf_datafile" type="str" value="$(arg data_folder)/scene/right/CalibratedTransform.yml"/>
