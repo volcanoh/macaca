@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="macaca_eyescene_map" type="macaca_eyescene_map_node" name="macaca_eyescene_map_node" output="screen">
+    <rosparam command="load" file="$(find macaca_eyescene_map)/config/marker5-4.yml" />
+  </node>
+</launch>

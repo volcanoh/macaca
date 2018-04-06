@@ -44,6 +44,7 @@ class Detection:
     def __init__(self):
         self.cfg = rospy.get_param('~cfg', 'e2e_mask_rcnn_R-101-FPN_2x.yaml')
         self.wts = rospy.get_param('~wts', 'model_final.pkl')
+        self.train_wts = rospy.get_param('~train_wts', 'R-101.pkl')
         self.confidence = rospy.get_param('~confidence', 0.9)
         self.sub_img_topic = rospy.get_param('~sub_img_topic', "image_rect_color")
         self.frame_rate = rospy.get_param('~frame_rate', 30)
@@ -54,6 +55,7 @@ class Detection:
         merge_cfg_from_file(self.cfg)
         cfg.NUM_GPUS = 2
         cfg.MODEL.MASK_ON = True
+        cfg.TRAIN.WEIGHTS = self.train_wts
         assert_and_infer_cfg()
         utils.logging.setup_logging(__name__)
         self.logger = logging.getLogger(__name__)
