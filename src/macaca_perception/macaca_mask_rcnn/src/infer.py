@@ -29,10 +29,11 @@ import utils.vis as vis_utils
 import rospy
 from std_msgs.msg import String
 from macaca_mask_rcnn_msgs.msg import *
-from sensor_msgs.msg import CompressedImage
 import numpy as np
+from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+from eyetracking_msgs.msg import ImagePoint
 
 c2_utils.import_detectron_ops()
 # OpenCL may be enabled by default in OpenCV3; disable it because it's not
@@ -60,9 +61,12 @@ class Detection:
         utils.logging.setup_logging(__name__)
         self.logger = logging.getLogger(__name__)
         self.model = infer_engine.initialize_model_from_cfg(self.wts, gpu_id=self.gpu_id)
+        self.model1 = infer_engine.initialize_model_from_cfg(self.wts, gpu_id=1)
         self.dummy_coco_dataset = dummy_datasets.get_coco_dataset()
 
+        self.pupil_subscriber = rospy.Subscriber('/scene/left/fit_point', ImagePoint, self.pupil_callback, queue_size=1)
         self.image_subscriber = rospy.Subscriber(self.sub_img_topic, Image, self.callback, queue_size=1)
+        self.compressed_image_subscriber = rospy.Subscriber(self.sub_img_topic+"/compressed", CompressedImage, self.compimgcallback, queue_size=1)
 
         self.pub_bboxes_topic =  rospy.resolve_name(self.sub_img_topic) + '/bboxes'
         print("Mask RCNN Initialized")
@@ -72,6 +76,9 @@ class Detection:
         self.bridge = CvBridge()
         self.last_detect = rospy.Time.now()
 
+    def pupil_callback(self, data):
+        self.map_point = [data.x, data.y]
+        print(data)
     def callback(self, data):
         t = time.time()
 
@@ -83,7 +90,26 @@ class Detection:
             self.last_detect = data.header.stamp
 
         cv_image = self.bridge.imgmsg_to_cv2(data)
-        self.imsw, self.bboxes = self.detect(cv_image)
+        self.imsw, self.bboxes = self.detect(cv_image, self.gpu_id)
+        self.bboxes.header= data.header
+        self.bboxes_publisher.publish(self.bboxes)
+        pub_imgmsg = self.bridge.cv2_to_imgmsg(self.imsw)
+        pub_imgmsg.header = data.header;
+        self.image_publisher.publish(pub_imgmsg)
+        self.logger.info('Callback time: {:.3f}s'.format(time.time() - t))
+        return
+    def compimgcallback(self, data):
+        t = time.time()
+
+        time1 = float(data.header.stamp.secs) + float(data.header.stamp.nsecs)*1e-9
+        time2 = float(self.last_detect.secs) + float(self.last_detect.nsecs)*1e-9
+        if (time1 - time2 < 0.15):
+            return
+        else:
+            self.last_detect = data.header.stamp
+
+        cv_image = self.bridge.compressed_imgmsg_to_cv2(data)
+        self.imsw, self.bboxes = self.detect(cv_image, 1)
         self.bboxes.header= data.header
         self.bboxes_publisher.publish(self.bboxes)
         pub_imgmsg = self.bridge.cv2_to_imgmsg(self.imsw)
@@ -92,13 +118,19 @@ class Detection:
         self.logger.info('Callback time: {:.3f}s'.format(time.time() - t))
         return
         
-    def detect(self, im):
+    def detect(self, im, id):
         timers = defaultdict(Timer)
         t = time.time()
-        with c2_utils.NamedCudaScope(self.gpu_id):
-            cls_boxes, cls_segms, cls_keyps = infer_engine.im_detect_all(
-                self.model, im, None, timers=timers
-            )
+        with c2_utils.NamedCudaScope(id):
+            if id == 0:
+                cls_boxes, cls_segms, cls_keyps = infer_engine.im_detect_all(
+                    self.model, im, None, timers=timers
+                )
+            else:
+                cls_boxes, cls_segms, cls_keyps = infer_engine.im_detect_all(
+                    self.model1, im, None, timers=timers
+                )
+
         self.logger.info('Inference time: {:.3f}s'.format(time.time() - t))
         for k, v in timers.items():
             self.logger.info(' | {}: {:.3f}s'.format(k, v.average_time))
