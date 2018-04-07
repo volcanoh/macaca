@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="macaca_eyescene_map" type="get_calibration_datafile_node" name="get_calibration_datafile_node" output="screen">
-    <rosparam command="load" file="$(find macaca_eyescene_map)/config/marker5-4.yml" />
+  <node pkg="macaca_eyescene_map" type="colorblock" name="colorblock" output="screen">
+    <rosparam command="load" file="$(find macaca_eyescene_map)/param/colorblock.yml" />
   </node>
 </launch>

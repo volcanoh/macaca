@@ -35,6 +35,7 @@ int WriteCalibrationData(std::string filename) {
   else {
     cv::FileStorage fs(filename, cv::FileStorage::WRITE);
     if (fs.isOpened()) {
+      fs << "count" <<(int) point3d_array.size();
       for (int i = 0; i < size; ++i) {
         std::stringstream ss1;
         ss1 << "point3d_" << i;
@@ -149,7 +150,7 @@ int main(int argc, char *argv[])
     srv.request.max_track_error = max_track_error;
 
     int key = getch();
-    if (client.call(srv)) {
+    if (lefteyeDone && client.call(srv)) {
       //ROS_INFO("marker_pose Called Success");
       tf::Transform pose;
       tf::poseMsgToTF(srv.response.camera_to_artag, pose);

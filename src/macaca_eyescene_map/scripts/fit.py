@@ -5,31 +5,53 @@ from yaml import load, dump
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF
 import numpy as np
+import rospy
+from eyetracking_msgs.msg import RotatedRect
+from eyetracking_msgs.msg import ImagePoint
+import pandas as pd
 
-point3d_array = []
-left_eye_point2d_array = []
-right_eye_point2d_array = []
-left_scene_point2d_array = []
+
+point3d_list = []
+left_eye_point2d_list = []
+right_eye_point2d_list = []
+left_scene_point2d_list = []
+
+point3d_list = []
+left_eye_point2d_list = []
+right_eye_point2d_list = []
+left_scene_point2d_list = []
+
+calibrated = False
+le_done = False
+re_done = False
+lex,ley, rex, rey, x,y,z = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 def read_calib_data(filename):
+    global point3d_list, left_scene_point2d_list, left_eye_point2d_list, right_eye_point2d_list
     with open(filename) as stream:
         for i in [0,1]:
             _ = stream.readline()
         data = yaml.load(stream)
+
     count = data['count']
+    del point3d_list[:]
+    del left_eye_point2d_list[:]
+    del right_eye_point2d_list[:]
+    del left_scene_point2d_list[:]
+
     for i in range(count):
         point3d = data['point3d_' + str(i)]
         left_eye_point2d = data['left_eye_point2d_' + str(i)]
         right_eye_point2d = data['right_eye_point2d_' + str(i)]
         left_scene_point2d = data['left_scene_point2d_' + str(i)]
-        point3d_array.append(point3d)
-        left_eye_point2d_array.append(left_eye_point2d)
-        right_eye_point2d_array.append(right_eye_point2d)
-        left_scene_point2d_array.append(left_scene_point2d)
-    print count
+        point3d_list.append(point3d)
+        left_eye_point2d_list.append(left_eye_point2d)
+        right_eye_point2d_list.append(right_eye_point2d)
+        left_scene_point2d_list.append(left_scene_point2d)
+    # print count
 
 
-length_scale = [2, 2, 2, 2]
+length_scale = [3, 3, 3, 3]
 length_scale_bounds = [(1e-05, 100000.0), (1e-05, 100000.0), (1e-05, 100000.0), (1e-05, 100000.0)]
 
 gp_kernel_lsx = RBF(length_scale=length_scale, length_scale_bounds=length_scale_bounds)
@@ -49,32 +71,71 @@ gpr_y = GaussianProcessRegressor(kernel=gp_kernel_y)
 gpr_z = GaussianProcessRegressor(kernel=gp_kernel_z)
 
 def gaze_estimation_model_fitting():
+    print("gaze estimation model fitting")
     gpr_lsx.fit(np.concatenate((left_eye_point2d_array, right_eye_point2d_array), axis=1), left_scene_point2d_array[:,0])
     gpr_lsy.fit(np.concatenate((left_eye_point2d_array, right_eye_point2d_array), axis=1), left_scene_point2d_array[:,1])
     gpr_x.fit(np.concatenate((left_eye_point2d_array, right_eye_point2d_array), axis=1), point3d_array[:,0])
     gpr_y.fit(np.concatenate((left_eye_point2d_array, right_eye_point2d_array), axis=1), point3d_array[:,1])
     gpr_z.fit(np.concatenate((left_eye_point2d_array, right_eye_point2d_array), axis=1), point3d_array[:,2])
+    print("fitted")
 
 
 def handle_gaze_estimation():
-    lsx = gpr_lsx.predict(np.reshape(np.concatenate((left_eye_point2d_array[0,:], right_eye_point2d_array[0,:])),[1,4]), return_std=False)
-    lsy = gpr_lsy.predict(np.reshape(np.concatenate((left_eye_point2d_array[0,:], right_eye_point2d_array[0,:])),[1,4]), return_std=False)
-    x = gpr_x.predict(np.reshape(np.concatenate((left_eye_point2d_array[0,:], right_eye_point2d_array[0,:])),[1,4]), return_std=False)
-    y = gpr_y.predict(np.reshape(np.concatenate((left_eye_point2d_array[0,:], right_eye_point2d_array[0,:])),[1,4]), return_std=False)
-    z = gpr_z.predict(np.reshape(np.concatenate((left_eye_point2d_array[0,:], right_eye_point2d_array[0,:])),[1,4]), return_std=False)
-    return [lsx, lsy,x,y,z]
+    global lex,ley,rex,rey
+    lex,ley,rex,rey = 663,346,596,402
+    print ("input", np.reshape(np.array([lex, ley, rex, rey]),[1,4]))
+
+    lsx = gpr_lsx.predict(np.reshape(np.array([lex, ley, rex, rey]),[1,4]), return_std=False)
+    lsy = gpr_lsy.predict(np.reshape(np.array([lex, ley, rex, rey]),[1,4]), return_std=False)
+    x = gpr_x.predict(np.reshape(np.array([lex, ley, rex, rey]),[1,4]), return_std=False)
+    y = gpr_y.predict(np.reshape(np.array([lex, ley, rex, rey]),[1,4]), return_std=False)
+    z = gpr_z.predict(np.reshape(np.array([lex, ley, rex, rey]),[1,4]), return_std=False)
+    return lsx, lsy, x, y, z
+
+
+def leftCallback(data):
+    global lex, ley, le_done
+    lex = data.x
+    ley = data.y
+    le_done = True
+
+def rightCallback(data):
+    global rex, rey, re_done
+    rex = data.x
+    rey = data.y
+    re_done = True
+
 
 
 if __name__ == '__main__':
-    read_calib_data(sys.argv[1])
-    point3d_array = np.array(point3d_array)
-    left_eye_point2d_array = np.array(left_eye_point2d_array)
-    right_eye_point2d_array = np.array(right_eye_point2d_array)
-    left_scene_point2d_array = np.array(left_scene_point2d_array)
+    rospy.init_node('eye_scene_fit_node')
 
-    gaze_estimation_model_fitting()
-    print left_scene_point2d_array[0,:]
-    print point3d_array[0,:]
-    print (handle_gaze_estimation())
-
-
+    left_eye_sub = rospy.Subscriber('/eye/left/pupil_ellipse', RotatedRect, leftCallback, queue_size=1)
+    right_eye_sub = rospy.Subscriber('/eye/right/pupil_ellipse', RotatedRect, rightCallback, queue_size=1)
+    left_scene_pub = rospy.Publisher('/scene/left/fit_point', ImagePoint, queue_size=1)
+    r = rospy.Rate(30)
+    while not rospy.is_shutdown():
+        # read calibration data
+        r.sleep()
+        if not calibrated:
+            read_calib_data(sys.argv[1])
+            point3d_array = np.array(point3d_list)
+            left_eye_point2d_array = np.array(left_eye_point2d_list)
+            right_eye_point2d_array = np.array(right_eye_point2d_list)
+            left_scene_point2d_array = np.array(left_scene_point2d_list)
+            pdata = pd.DataFrame(np.concatenate((left_eye_point2d_array, right_eye_point2d_array, left_scene_point2d_array, point3d_array),axis=1))
+            pdata.to_csv("1.txt")
+            gaze_estimation_model_fitting()
+            calibrated = True
+            # get fitting model with data
+        else:
+            if le_done and re_done:
+                lsx, lsy, x, y, z = handle_gaze_estimation()
+                lspt = ImagePoint()
+                lspt.x = lsx
+                lspt.y = lsy
+                left_scene_pub.publish(lspt)
+                # print(lspt)
+                print(lsx,lsy,x,y,z)
+    print("shutdown")
+    rospy.spin()
