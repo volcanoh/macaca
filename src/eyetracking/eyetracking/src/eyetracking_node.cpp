@@ -95,6 +95,21 @@ int main(int argc, char *argv[])
   ros::init(argc, argv, "image_listener");
   ros::NodeHandle nh;
 
+  nh.getParam("Radius_Min", params.Radius_Min);
+  nh.getParam("Radius_Max", params.Radius_Max);
+  nh.getParam("CannyBlur", params.CannyBlur);
+  nh.getParam("CannyThreshold1", params.CannyThreshold1);
+  nh.getParam("CannyThreshold2", params.CannyThreshold2);
+
+  nh.getParam("StarburstPoints", params.StarburstPoints);
+  nh.getParam("InlierIterations", params.InlierIterations);
+  nh.getParam("PercentageInliers", params.PercentageInliers);
+
+  nh.getParam("ImageAwareSupport", params.ImageAwareSupport);
+  nh.getParam("EarlyTerminationPercentage", params.EarlyTerminationPercentage);
+  nh.getParam("EarlyRejection", params.EarlyRejection);
+  nh.getParam("Seed", params.Seed);
+
   dynamic_reconfigure::Server<eyetracking::PupilParamsConfig> dyn_server;
   dynamic_reconfigure::Server<eyetracking::PupilParamsConfig>::CallbackType dyn_callback;
   dyn_callback = boost::bind(&configCallback, _1, _2);
