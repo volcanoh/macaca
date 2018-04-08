@@ -34,6 +34,9 @@ std::vector<cv::Point2d> left_eye_point2d_array;
 std::vector<cv::Point2d> right_eye_point2d_array;
 std::vector<cv::Point2d> left_scene_point2d_array;
 
+ros::Publisher image_pub;
+cv::Mat binary;
+
 int thresh = 70;
 int min_area = 700;
 int max_area = 7000;
@@ -153,11 +156,10 @@ void SeedFillNew(const cv::Mat& _binImg, cv::Mat& _lableImg, std::vector<int>& l
   }  
 }  
 
-cv::Point GetColorBlockCenter(cv::Mat& rgb, int thresh, int min_area, int max_area) {
+cv::Point GetColorBlockCenter(const cv::Mat& rgb, cv::Mat& binary, int thresh, int min_area, int max_area) {
   cv::Point ret(0, 0);
 
   cv::Mat hsv3;
-  cv::Mat binary;
   std::vector<cv::Mat> hsv;
   cv::cvtColor(rgb, hsv3, cv::COLOR_RGB2HSV);
   cv::split(hsv3, hsv);
@@ -203,8 +205,6 @@ cv::Point GetColorBlockCenter(cv::Mat& rgb, int thresh, int min_area, int max_ar
   }
 
 
-  cv::imshow("binary", binary);
-  cv::waitKey(10);
   return ret;
 }
 
@@ -237,16 +237,40 @@ int WriteCalibrationData(std::string filename) {
 // function getch is from http://answers.ros.org/question/63491/keyboard-key-pressed/
 int getch()
 {
-  static struct termios oldt, newt;
-  tcgetattr( STDIN_FILENO, &oldt);           // save old settings
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON);                 // disable buffering      
-  tcsetattr( STDIN_FILENO, TCSANOW, &newt);  // apply new settings
+    fd_set set;
+    struct timeval timeout;
+    int rv;
+    char buff = 0;
+    int len = 1;
+    int filedesc = 0;
+    FD_ZERO(&set);
+    FD_SET(filedesc, &set);
 
-  int c = getchar();  // read character (non-blocking)
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 1000;
 
-  tcsetattr( STDIN_FILENO, TCSANOW, &oldt);  // restore old settings
-  return c;
+    rv = select(filedesc + 1, &set, NULL, NULL, &timeout);
+
+    struct termios old = {0};
+    if (tcgetattr(filedesc, &old) < 0)
+        ROS_ERROR("tcsetattr()");
+    old.c_lflag &= ~ICANON;
+    old.c_lflag &= ~ECHO;
+    old.c_cc[VMIN] = 1;
+    old.c_cc[VTIME] = 0;
+    if (tcsetattr(filedesc, TCSANOW, &old) < 0)
+        ROS_ERROR("tcsetattr ICANON");
+
+    if(rv == -1)
+        ROS_ERROR("select");
+    else if(rv != 0)
+        read(filedesc, &buff, len );
+
+    old.c_lflag |= ICANON;
+    old.c_lflag |= ECHO;
+    if (tcsetattr(filedesc, TCSADRAIN, &old) < 0)
+        ROS_ERROR ("tcsetattr ~ICANON");
+    return (buff);
 }
 void leftpupilCallback(const eyetracking_msgs::RotatedRectConstPtr& msg) {
   left_eye_point2d = cv::Point2d(msg->x, msg->y);
@@ -272,12 +296,15 @@ void rightpupilCallback(const eyetracking_msgs::RotatedRectConstPtr& msg) {
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
   cv::Mat cv_image = cv_bridge::toCvCopy(msg, "rgb8")->image;
-  cv::Point center = GetColorBlockCenter(cv_image, thresh, min_area, max_area);
+  cv::Point center = GetColorBlockCenter(cv_image, binary, thresh, min_area, max_area);
   if (center.x != 0 || center.y !=0) {
     left_scene_point2d.x = center.x;
     left_scene_point2d.y = center.y;
     leftsceneDone = true;
   }
+  sensor_msgs::Image binmsg;
+  cv_bridge::CvImage cv_bri_img(msg->header, sensor_msgs::image_encodings::MONO8, binary);
+  image_pub.publish(cv_bri_img.toImageMsg());
 }
 
 
@@ -303,6 +330,7 @@ int main(int argc, char *argv[])
   image_transport::Subscriber image_sub = it.subscribe(image_topic, 10, imageCallback);
   ros::Subscriber left_pupil_sub = nh.subscribe(left_pupil_topic, 1, leftpupilCallback);
   ros::Subscriber right_pupil_sub = nh.subscribe(right_pupil_topic, 1, rightpupilCallback);
+  image_pub = nh.advertise<sensor_msgs::Image>("/scene/left/image_rect_binary", 1);
 
   dynamic_reconfigure::Server<macaca_eyescene_map::ColorBlockConfig> dyn_server;
   dynamic_reconfigure::Server<macaca_eyescene_map::ColorBlockConfig>::CallbackType dyn_callback;
@@ -315,8 +343,8 @@ int main(int argc, char *argv[])
   while (ros::ok()) {
     ros::spinOnce();
 
-    //int key = getch();
-    int key = waitKey(33);
+    int key = getch();
+    //int key = waitKey(33);
     if (lefteyeDone && leftsceneDone && righteyeDone) {
       if ((key == 's') || (key == 'S')){
         std::cout << "========================================" << std::endl;

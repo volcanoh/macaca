@@ -66,7 +66,7 @@ class Detection:
 
         self.pupil_subscriber = rospy.Subscriber('/scene/left/fit_point', ImagePoint, self.pupil_callback, queue_size=1)
         self.image_subscriber = rospy.Subscriber(self.sub_img_topic, Image, self.callback, queue_size=1)
-        self.compressed_image_subscriber = rospy.Subscriber(self.sub_img_topic+"/compressed", CompressedImage, self.compimgcallback, queue_size=1)
+        # self.compressed_image_subscriber = rospy.Subscriber(self.sub_img_topic+"/compressed", CompressedImage, self.compimgcallback, queue_size=1)
 
         self.pub_bboxes_topic =  rospy.resolve_name(self.sub_img_topic) + '/bboxes'
         print("Mask RCNN Initialized")
@@ -75,9 +75,10 @@ class Detection:
         self.image_publisher = rospy.Publisher(self.pub_img_topic, Image, queue_size=20)
         self.bridge = CvBridge()
         self.last_detect = rospy.Time.now()
+        self.fit_point = []
 
     def pupil_callback(self, data):
-        self.map_point = [data.x, data.y]
+        self.fit_point = [data.x, data.y]
         print(data)
     def callback(self, data):
         t = time.time()
@@ -91,6 +92,11 @@ class Detection:
 
         cv_image = self.bridge.imgmsg_to_cv2(data)
         self.imsw, self.bboxes = self.detect(cv_image, self.gpu_id)
+
+        rows, cols, channels = self.imsw.shape
+        print (self.fit_point,"xxxx") 
+        if len(self.fit_point)==2 and (self.fit_point[0] < cols) and (self.fit_point[0] > 0) and (self.fit_point[1] < rows) and (self.fit_point[1] > 0):
+            cv2.circle(self.imsw, (int(self.fit_point[0]), int(self.fit_point[1])), 4, (0,0,255), 8)
         self.bboxes.header= data.header
         self.bboxes_publisher.publish(self.bboxes)
         pub_imgmsg = self.bridge.cv2_to_imgmsg(self.imsw)
